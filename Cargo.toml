@@ -6,3 +6,9 @@ edition = "2024"
 [dependencies]
 thiserror = "1.0"
 eqsolver = "0.3.0"
+pyo3 = "0.25.0"
+numpy = "0.25.0"
+
+[lib]
+name = "dustreverb"
+crate-type = ["cdylib"]
