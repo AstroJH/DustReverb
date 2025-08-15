@@ -6,4 +6,3 @@ edition = "2024"
 [dependencies]
 thiserror = "1.0"
 eqsolver = "0.3.0"
-enterpolation = "0.2"

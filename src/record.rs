@@ -24,6 +24,36 @@ impl DiscreteTimeMachine {
         self.records.push(shell.clone());
     }
 
+    pub fn get_first_cube_record(&self, r: f64, theta: f64, phi: f64) -> Option<DustCube> {
+        let times = &self.times;
+        let records = &self.records;
+        let size = times.len();
+
+        if size == 0 {
+            return None
+        }
+
+        match records[0].locate_cube(r, theta, phi) {
+            Some(cube) => Some(cube.clone()),
+            None => None
+        }
+    }
+
+    pub fn get_last_cube_record(&self, r: f64, theta: f64, phi: f64) -> Option<DustCube> {
+        let times = &self.times;
+        let records = &self.records;
+        let size = times.len();
+
+        if size == 0 {
+            return None
+        }
+
+        match records[size-1].locate_cube(r, theta, phi) {
+            Some(cube) => Some(cube.clone()),
+            None => None
+        }
+    }
+
     /// 获取指定时间、指定坐标的 cube。
     ///
     /// **Note**: 既不能追溯过去，不能得知未来。
@@ -58,8 +88,8 @@ impl DiscreteTimeMachine {
         let t0 = self.times[idx0];
         let t1 = self.times[idx1];
 
-        let sh0 = &self.records[idx0];
-        let sh1 = &self.records[idx1];
+        let sh0 = &records[idx0];
+        let sh1 = &records[idx1];
 
         /* TODO
             这里可以优化。在获取 cube0 时已经知道了 cube 的物理索引位置，

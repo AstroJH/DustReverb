@@ -1,8 +1,8 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 use eqsolver::single_variable::FDNewton;
-use crate::consts::{DOUBLE_PI, DUST_A_MIN, PC2CM, QUAT_PI, SIGMA, YEAR2SECOND};
+use crate::consts::{DOUBLE_PI, DUST_A_MIN, H, K_B, LIGHT_SPEED, PC2CM, QUAT_PI, SIGMA, YEAR2SECOND};
 use crate::utils::{search_interval, IntervalResult};
-use crate::errors::{Result, Errors};
+use crate::objects::UVSourceType::JUMP;
 
 #[derive(Clone,Debug)]
 pub struct UVSource {
@@ -13,10 +13,8 @@ pub struct UVSource {
 
 #[derive(Clone,Debug)]
 pub enum UVSourceType {
-    CONSTANT(f64),
-    TDE,
-    DRW,
-    JUMP,
+    CONSTANT(f64), // val
+    JUMP(f64, f64, f64), // (val0, val1, t_jump)
     USER,
 }
 
@@ -28,6 +26,16 @@ impl UVSource {
             source_type: UVSourceType::CONSTANT(val),
         }
     }
+
+    pub fn from_jump(val0: f64, val1: f64, t_jump: f64) -> UVSource {
+        UVSource {
+            data_time: Vec::with_capacity(0),
+            data_lumin: Vec::with_capacity(0),
+            source_type: JUMP(val0, val1, t_jump),
+        }
+    }
+
+
 
     pub fn new(data_time: Vec<f64>, data_lumin: Vec<f64>) -> UVSource {
         UVSource {
@@ -41,6 +49,11 @@ impl UVSource {
         // 根据不同的 UVSourceType 进行匹配
         match self.source_type {
             UVSourceType::CONSTANT(val) => val,
+
+            JUMP(val0, val1, t_jump) => {
+                if t < t_jump { val0 } else { val1 }
+            },
+
             _ => self.get_value_general_type(t),
         }
     }
@@ -292,9 +305,53 @@ impl DustCube {
         -coef * 1E15 * 1E23_f64.powf(-1.0/3.0)
     }
 
-    pub fn emit(&self) -> f64 {
-        panic!()
+    /// Planck function
+    /// 
+    /// unit: erg/cm2/s/Hz
+    fn planck(&self, lam_cm: f64, temperature: f64) -> f64 {
+        let lam2 = lam_cm * lam_cm;
+        let lam5 = lam2 * lam2 * lam_cm;
+
+        let factor1 = 2.0 * H * (LIGHT_SPEED*LIGHT_SPEED/lam5);
+        let factor2 = H * LIGHT_SPEED / K_B / temperature / lam_cm;
+
+        let coef = lam2 / LIGHT_SPEED;
+
+        coef * factor1 / (factor2.exp() - 1.0)
     }
+
+    /// unit: pc3
+    pub fn volume(&self) -> f64 {
+        let frac_d_theta_2 = self.d_theta / 2.0;
+        let frac_d_r_2 = self.d_r / 2.0;
+
+        let theta1 = self.theta - frac_d_theta_2;
+        let theta2 = self.theta + frac_d_theta_2;
+        let r1 = self.r - frac_d_r_2;
+        let r2 = self.r + frac_d_r_2;
+
+        let d_phi = self.d_phi;
+        // theta1.cos
+        let d_cos_theta = theta1.cos() - theta2.cos();
+        let d_r3 = r2.powi(3) - r1.powi(3);
+
+        d_r3 * d_cos_theta * d_phi / 3.0
+    }
+
+    pub fn num_dust_particle(&self) -> f64 {
+        let volume = self.volume(); // pc3
+        let n_dust = self.n_dust; // cm-3
+
+        volume * n_dust * PC2CM.powi(3)
+    }
+
+    pub fn emit(&self, lam_cm: f64) -> f64 {
+        let single_lumin = QUAT_PI * PI * self.a.powi(2) * self.planck(lam_cm, self.temperature);
+        let num_dust = self.num_dust_particle();
+
+        single_lumin * num_dust
+    }
+
 }
 
 impl DustCone {
@@ -476,7 +533,7 @@ impl DustShell {
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::PI;
+    use std::f64::consts::{FRAC_PI_6, PI, SQRT_2};
     use crate::consts::DUST_TEMPERATURE_MIN;
     use super::*;
 
@@ -506,5 +563,31 @@ mod tests {
         let r = coord.0; // pc
         let flux = lumin / PC2CM / PC2CM / QUAT_PI / r / r;
         cube.absorb_energy(flux);
+    }
+
+    #[test]
+    fn calc_volume() {
+        let cube = DustCube::new(
+            (1.5, FRAC_PI_2, FRAC_PI_2),
+            (1.0, FRAC_PI_2, FRAC_PI_2),
+            5E-9, 0.0, 1E-5, 500.0
+        );
+
+        let mut diff = cube.volume() - FRAC_PI_6 * 7.0 * SQRT_2;
+        diff = diff.abs();
+
+        assert!(diff <= f64::EPSILON * 10.0);
+
+
+        let cube = DustCube::new(
+            (1.0, FRAC_PI_2, PI),
+            (2.0, PI, DOUBLE_PI),
+            5E-9, 0.0, 1E-5, 500.0
+        );
+
+        let mut diff = cube.volume() - QUAT_PI / 3.0 * (2_f64).powi(3);
+        diff = diff.abs();
+
+        assert!(diff <= f64::EPSILON * 10.0);
     }
 }

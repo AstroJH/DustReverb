@@ -1,7 +1,8 @@
 // x1 >= x0
 pub fn linear_interpolation_point(
     x0: f64, x1: f64, y0: f64, y1: f64,
-    target_x: f64) -> f64 {
+    target_x: f64
+) -> f64 {
 
     let x = vec![x0, x1];
     let y = vec![y0, y1];

@@ -1,4 +1,4 @@
-use crate::consts::{LIGHT_SPEED, PC2CM, QUAT_PI, YEAR2SECOND};
+use crate::consts::{LIGHT_SPEED, PC2CM, QUAT_PI, YEAR2SECOND, CGS2JANSKY};
 use crate::objects::{DustCone, DustCube, DustShell, UVSource};
 use crate::record::DiscreteTimeMachine;
 use crate::errors::Result;
@@ -47,7 +47,7 @@ impl DustReverbEngine {
 
             for cone in shell.cones_iter_mut() {
                 Self::update_next_frame_of_cone(
-                    source, time_machine, cone, t_curr, t_next, times[0]
+                    source, time_machine, cone, t_curr, t_next
                 );
             }
 
@@ -63,7 +63,7 @@ impl DustReverbEngine {
         source: &UVSource,
         time_machine: &DiscreteTimeMachine,
         cone: &mut DustCone,
-        t_cur: f64, t_next: f64, t0: f64
+        t_cur: f64, t_next: f64
     ) {
         // 计算每一个 cube 的累积推迟光深
         let num_cube = cone.num_cube();
@@ -95,8 +95,7 @@ impl DustReverbEngine {
                         tau += inner_cube_record.get_tau_uv();
                     },
                     None => {
-                        let inner_cube_first_record = time_machine.get_cube(
-                            t0,
+                        let inner_cube_first_record = time_machine.get_first_cube_record(
                             inner_cube_coord.0,
                             inner_cube_coord.1,
                             inner_cube_coord.2
@@ -140,5 +139,55 @@ impl DustReverbEngine {
         // 计算热平衡方程
         // 更新下一时刻的温度
         cube.absorb_energy(flux);
+    }
+
+    fn calc_separation(coord1: (f64, f64, f64), coord2: (f64, f64, f64)) -> f64 {
+        let (r1, theta1, phi1) = coord1;
+        let (r2, theta2, phi2) = coord2;
+
+        let d2 = r1.powi(2) + r2.powi(2) - 2.0 * r1 * r2 * (
+            theta1.sin() * theta2.sin() * (phi2 - phi1).cos()
+            +
+            theta1.cos() * theta2.cos()
+        );
+
+        d2.sqrt()
+    }
+
+    pub fn calc_lightcurve(&self, lam_cm: f64, times: Vec<f64>, observer: (f64, f64, f64)) -> Vec<f64> {
+        let mut curve = Vec::<f64>::with_capacity(times.len());
+        let time_machine = &self.time_machine;
+        let shell = &self.shell;
+
+        let (r_o, _, _) = observer;
+        let t0 = r_o / LIGHT_SPEED * PC2CM / YEAR2SECOND;
+
+        for t in times {
+            let mut flux_t = 0.0;
+            for cone in shell.cones_iter() {
+                for cube in cone.cubes_iter() {
+                    let coord = cube.get_coord();
+                    let (r, theta, phi) = coord;
+                    let distance = Self::calc_separation(coord, observer); // pc
+
+                    let t_tr = t - distance / LIGHT_SPEED * PC2CM / YEAR2SECOND + t0;
+                    
+                    let cube_record = time_machine.get_cube(t_tr, r, theta, phi);
+                    let cube_record = match cube_record {
+                        Some(obj) => obj,
+                        None => time_machine.get_first_cube_record(r, theta, phi).unwrap()
+                    };
+
+                    let lumin = cube_record.emit(lam_cm);
+                    let flux = lumin / PC2CM / PC2CM * CGS2JANSKY / QUAT_PI / distance / distance;
+
+                    flux_t += flux;
+                }
+            }
+
+            curve.push(flux_t);
+        }
+
+        curve
     }
 }
