@@ -91,6 +91,20 @@ pub fn search_interval(edges: &Vec<f64>, target: f64) -> IntervalResult {
     IntervalResult::Found(high - 1)
 }
 
+/// flux to mag
+/// 
+/// the unit of flux is Jy
+pub fn flux2mag(flux: f64, flux_zero: f64) -> f64 {
+    -2.5 * (flux/flux_zero).log10()
+}
+
+/// mag to flux
+/// 
+/// the unit of flux is Jy
+pub fn mag2flux(mag: f64, flux_zero: f64) -> f64 {
+    10_f64.powf(-mag/2.5) * flux_zero
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -18,3 +18,5 @@ pub const DUST_TEMPERATURE_MIN: f64 = 150.0;
 
 pub const WISE_W1_LAMBDA_CM: f64 = 0.00034;
 pub const WISE_W2_LAMBDA_CM: f64 = 0.00046;
+pub const FLUX_ZERO_W1: f64 = 306.681; // Jy
+pub const FLUX_ZERO_W2: f64 = 170.663; // Jy

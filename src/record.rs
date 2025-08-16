@@ -129,7 +129,7 @@ impl DiscreteTimeMachine {
         let file = File::create(output).unwrap();
 
         let mut writer = BufWriter::new(file);
-        writeln!(&mut writer, "time,r,theta,phi,temp,a,tau_uv,flux").unwrap();
+        writeln!(&mut writer, "time,r,theta,phi,temp,a,tau_uv").unwrap();
 
         for (time, record) in self.times.iter().zip(self.records.iter()) {
             for cone in record.cones_iter() {

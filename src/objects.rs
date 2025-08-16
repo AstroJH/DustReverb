@@ -483,6 +483,45 @@ impl DustShell {
         }
     }
 
+    pub fn from_dust(
+        edge_radius: Vec<f64>,
+        edge_theta: Vec<f64>,
+        edge_phi: Vec<f64>,
+        n_dust: f64,
+        n_gas: f64,
+        dust_size: f64,
+        temperature: f64
+    ) -> DustShell {
+        let mut cones = Vec::<DustCone>::with_capacity(
+            (edge_theta.len()-1) * (edge_phi.len()-1)
+        );
+
+        for i in 1..edge_theta.len() {
+            for j in 1..edge_phi.len() {
+                let (theta1, theta2) = (edge_theta[i-1], edge_theta[i]);
+                let (phi1, phi2) = (edge_phi[j-1], edge_phi[j]);
+                
+                let orientation = ((theta1+theta2)/2.0, (phi1+phi2)/2.0);
+                let cone_size = (theta2-theta1, phi2-phi1);
+
+                let cone = DustCone::new(
+                    edge_radius.clone(),
+                    orientation,
+                    cone_size,
+                    n_dust, n_gas, dust_size, temperature
+                );
+                cones.push(cone);
+            }
+        }
+        
+        Self {
+            edge_theta,
+            edge_phi,
+            edge_radius,
+            cones
+        }
+    }
+
     pub fn cones_iter_mut(&mut self) -> impl Iterator<Item=&mut DustCone> {
         self.cones.iter_mut()
     }
