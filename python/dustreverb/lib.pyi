@@ -1,14 +1,16 @@
 from numpy.typing import NDArray
+from numpy import float64
+from typing import List
 
 def simulate(
-    times: NDArray,
-    edge_radius: NDArray,
-    edge_theta: NDArray,
-    edge_phi: NDArray,
-    n_dust: float,
-    dust_size: float,
-    source_times: NDArray,
-    source_lumin: NDArray,
+    times: NDArray[float64],
+    edge_radius: NDArray[float64],
+    edge_theta: NDArray[float64],
+    edge_phi: NDArray[float64],
+    n_dust: float64,
+    dust_size: float64,
+    source_times: NDArray[float64],
+    source_lumin: NDArray[float64],
     output_shell: str,
     output_curve: str
 ):
@@ -64,6 +66,21 @@ def simulate(
     """
     ...
 
-def calc_structure_function(): ...
+def calc_structure_function(
+    mjd: NDArray[float64],
+    mag: NDArray[float64],
+    magerr: NDArray[float64],
+    redshift: float64,
+    tau_lo: NDArray[float64],
+    tau_hi: NDArray[float64]
+): ...
 
-# def 
+def calc_ensemble_structure_function(
+    input: List[str],
+    redshifts: NDArray[float64],
+    tau_lo: NDArray[float64],
+    tau_hi: NDArray[float64],
+    mjd_name: str,
+    mag_name: str,
+    magerr_name: str
+): ...

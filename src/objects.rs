@@ -35,8 +35,6 @@ impl UVSource {
         }
     }
 
-
-
     pub fn new(data_time: Vec<f64>, data_lumin: Vec<f64>) -> UVSource {
         UVSource {
             data_time,
@@ -254,7 +252,8 @@ impl DustCube {
         }
     }
 
-    // dt: yr
+    /// 升华尘埃颗粒.
+    /// The unit of dt is `yr`.
     pub fn destroy_particle(&mut self, dt: f64) {
         let v = self.da_dt();
         let da = v * (dt * YEAR2SECOND);
@@ -284,6 +283,7 @@ impl DustCube {
         self.tau_uv = DOUBLE_PI*a*a*n_dust*d_r*PC2CM;
     }
 
+    /// 热平衡方程
     fn thermal_equilibrium(&self, flux: f64, temp: f64) -> f64 {
         let q_uv = 1.;
 
@@ -299,6 +299,7 @@ impl DustCube {
         left - right
     }
 
+    /// 尘埃颗粒升华方程
     fn da_dt(&self) -> f64 {
         let temp = self.temperature;
         let coef = (-7E4/temp).exp();

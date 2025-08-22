@@ -1,4 +1,9 @@
 from . import plot
-from .lib import play, simulate
+from .lib import simulate, calc_structure_function, calc_ensemble_structure_function
 
-__all__ = ["plot", "play", "simulate"]
+__all__ = [
+    "plot",
+    "simulate",
+    "calc_structure_function",
+    "calc_ensemble_structure_function"
+]
